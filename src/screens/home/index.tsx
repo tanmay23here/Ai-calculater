@@ -118,7 +118,7 @@ export default function Home() {
                 >
                     Reset
                 </Button>
-                <Group className='z-20'>
+                <Group className='z-20 gap-7'>
                     {SWATCHES.map((swatchColor: string) => (
                         <ColorSwatch
                             key={swatchColor}
