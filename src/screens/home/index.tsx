@@ -44,26 +44,24 @@ export default function Home() {
                     ctx.lineWidth = 3;
                 }
         }
-    }, []);
+
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js'
+        script.async = true;
+        document.head.appendChild(script);
+
+        script.onload = () => {
+            window.MathJax.Hub.Config({
+                tex2jax: {inlineMath: [['$', '$'], ['\\(', '\\)']]}
+            })
+        };
 
 
-    const sendData = async () => {
-        const canvas = canvasRef.current;
-
-        if (canvas) {
-            const response = await axios({
-                method: 'post',
-                url: `${import.meta.env.VITE_API_URL}/calculate`,
-                data: {
-                    image: canvas.toDataURL('image/png'),
-                    dict_of_vars: dictOfVars,
-                }
-            });
-    
-            const resp = await response.data;
-            console.log('Response: ', resp);
+        return () => {
+            document.head.removeChild(script);
         }
-    };
+
+    }, []);
 
     const resetCanvas = () => {
         const canvas = canvasRef.current;
@@ -107,6 +105,25 @@ export default function Home() {
         }
     };
 
+    const sendData = async () => {
+        const canvas = canvasRef.current;
+
+        if (canvas) {
+            console.log('Sending data...', `${import.meta.env.VITE_API_URL}/calculate`);
+            const response = await axios({
+                method: 'post',
+                url: `${import.meta.env.VITE_API_URL}/calculate`,
+                data: {
+                    image: canvas.toDataURL('image/png'),
+                    dict_of_vars: dictOfVars,
+                }
+            });
+    
+            const resp = await response.data;
+            console.log('Response: ', resp);
+        }
+    };
+    
     return (
         <>
             <div className='grid grid-cols-3 gap-2'>
@@ -139,7 +156,7 @@ export default function Home() {
             <canvas 
                 ref={canvasRef}
                 id='canvas'
-                className='absolute top-0 left-0 w-full h-full'
+                className='absolute top-0 left-0 w-full h-full bg-black'
                 onMouseDown={startDrawing}
                 onMouseOut={stopDrawing}
                 onMouseUp={stopDrawing}
