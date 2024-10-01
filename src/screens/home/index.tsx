@@ -5,7 +5,6 @@ import axios from 'axios';
 import Draggable from 'react-draggable';
 import {SWATCHES} from '@/constants';
 
-
 interface GeneratedResult {
     expression: string;
     answer: string;
@@ -26,6 +25,8 @@ export default function Home() {
     const [result, setResult] = useState<GeneratedResult>();
     const [latexPosition, setLatexPosition] = useState({ x: 10, y: 200 });
     const [latexExpression, setLatexExpression] = useState<Array<string>>([]);
+    const [size, setSize] = useState<number>(5); // Combined size for brush and eraser
+    const [isEraser, setIsEraser] = useState<boolean>(false); // State to toggle eraser
 
     useEffect(() => {
         if (latexExpression.length > 0 && window.MathJax) {
@@ -62,7 +63,6 @@ export default function Home() {
                 ctx.lineCap = 'round';
                 ctx.lineWidth = 3;
             }
-
         }
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML';
@@ -95,7 +95,6 @@ export default function Home() {
         }
     };
 
-
     const resetCanvas = () => {
         const canvas = canvasRef.current;
         if (canvas) {
@@ -118,6 +117,7 @@ export default function Home() {
             }
         }
     };
+    
     const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
         if (!isDrawing) {
             return;
@@ -126,12 +126,14 @@ export default function Home() {
         if (canvas) {
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                ctx.strokeStyle = color;
+                ctx.strokeStyle = isEraser ? 'black' : color; // Use black for eraser
+                ctx.lineWidth = size; // Set line width based on size
                 ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
                 ctx.stroke();
             }
         }
     };
+    
     const stopDrawing = () => {
         setIsDrawing(false);
     };  
@@ -153,7 +155,6 @@ export default function Home() {
             console.log('Response', resp);
             resp.data.forEach((data: Response) => {
                 if (data.assign === true) {
-                    // dict_of_vars[resp.result] = resp.answer;
                     setDictOfVars({
                         ...dictOfVars,
                         [data.expr]: data.result
@@ -193,16 +194,16 @@ export default function Home() {
 
     return (
         <>
-            <div className='grid grid-cols-3 gap-2'>
+            <div className='flex justify-between items-center p-4 bg-gray-800'>
                 <Button
                     onClick={() => setReset(true)}
-                    className='z-20 bg-black text-white'
+                    className='z-20 bg-red-600 text-white hover:bg-red-700 transition duration-200'
                     variant='default' 
                     color='black'
                 >
                     Reset
                 </Button>
-                <Group className='z-20'>
+                <Group className='z-20 flex space-x-2'>
                     {SWATCHES.map((swatchColor) => (
                         <ColorSwatch 
                             key={swatchColor} 
@@ -211,9 +212,27 @@ export default function Home() {
                         />
                     ))}
                 </Group>
+                <div className='z-20 text-white'>
+                    <input 
+                        type="range" 
+                        min="1" 
+                        max="15" 
+                        value={size} 
+                        onChange={(e) => setSize(Number(e.target.value))} 
+                        className='bg-gray-700'
+                    />
+                    <span>{size}</span>
+                </div>
+                <Button
+                    onClick={() => setIsEraser(!isEraser)} // Toggle eraser
+                    className='z-20 bg-blue-600 text-white hover:bg-blue-700 transition duration-200'
+                    variant='default'
+                >
+                    {isEraser ? 'Brush' : 'Eraser'}
+                </Button>
                 <Button
                     onClick={sendData}
-                    className='z-20 bg-black text-white'
+                    className='z-20 bg-green-600 text-white hover:bg-green-700 transition duration-200'
                     variant='default'
                     color='white'
                 >
@@ -236,7 +255,7 @@ export default function Home() {
                     defaultPosition={latexPosition}
                     onStop={(e, data) => setLatexPosition({ x: data.x, y: data.y })}
                 >
-                    <div className="absolute p-2 text-white rounded shadow-md">
+                    <div className="absolute p-3 text-white">
                         <div className="latex-content">{latex}</div>
                     </div>
                 </Draggable>
