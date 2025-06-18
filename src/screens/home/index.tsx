@@ -1,9 +1,8 @@
-import { ColorSwatch, Group } from '@mantine/core';
-import { Button } from '@/components/ui/button';
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Draggable from 'react-draggable';
-import {SWATCHES} from '@/constants';
+import ColorPicker from '@/components/ColorPicker';
+import Toolbar from '@/components/Toolbar';
 
 interface GeneratedResult {
     expression: string;
@@ -19,14 +18,14 @@ interface Response {
 export default function Home() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
-    const [color, setColor] = useState('rgb(255, 255, 255)');
+    const [color, setColor] = useState('#000000');
     const [reset, setReset] = useState(false);
     const [dictOfVars, setDictOfVars] = useState({});
     const [result, setResult] = useState<GeneratedResult>();
     const [latexPosition, setLatexPosition] = useState({ x: 10, y: 200 });
     const [latexExpression, setLatexExpression] = useState<Array<string>>([]);
-    const [size, setSize] = useState<number>(5); // Combined size for brush and eraser
-    const [isEraser, setIsEraser] = useState<boolean>(false); // State to toggle eraser
+    const [size, setSize] = useState<number>(3);
+    const [isEraser, setIsEraser] = useState<boolean>(false);
 
     useEffect(() => {
         if (latexExpression.length > 0 && window.MathJax) {
@@ -59,11 +58,12 @@ export default function Home() {
             const ctx = canvas.getContext('2d');
             if (ctx) {
                 canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight - canvas.offsetTop;
+                canvas.height = window.innerHeight;
                 ctx.lineCap = 'round';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = size;
             }
         }
+
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML';
         script.async = true;
@@ -78,8 +78,7 @@ export default function Home() {
         return () => {
             document.head.removeChild(script);
         };
-
-    }, []);
+    }, [size]);
 
     const renderLatexToCanvas = (expression: string, answer: string) => {
         const latex = `\\(\\LARGE{${expression} = ${answer}}\\)`;
@@ -108,7 +107,6 @@ export default function Home() {
     const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
         if (canvas) {
-            canvas.style.background = 'black';
             const ctx = canvas.getContext('2d');
             if (ctx) {
                 ctx.beginPath();
@@ -126,8 +124,8 @@ export default function Home() {
         if (canvas) {
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                ctx.strokeStyle = isEraser ? 'black' : color; // Use black for eraser
-                ctx.lineWidth = size; // Set line width based on size
+                ctx.strokeStyle = isEraser ? '#f5f5f5' : color;
+                ctx.lineWidth = size;
                 ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
                 ctx.stroke();
             }
@@ -168,7 +166,7 @@ export default function Home() {
             for (let y = 0; y < canvas.height; y++) {
                 for (let x = 0; x < canvas.width; x++) {
                     const i = (y * canvas.width + x) * 4;
-                    if (imageData.data[i + 3] > 0) {  // If pixel is not transparent
+                    if (imageData.data[i + 3] > 0) {
                         minX = Math.min(minX, x);
                         minY = Math.min(minY, y);
                         maxX = Math.max(maxX, x);
@@ -193,73 +191,46 @@ export default function Home() {
     };
 
     return (
-        <>
-            <div className='flex justify-between items-center p-4 bg-gray-800'>
-                <Button
-                    onClick={() => setReset(true)}
-                    className='z-20 bg-red-600 text-white hover:bg-red-700 transition duration-200'
-                    variant='default' 
-                    color='black'
-                >
-                    Reset
-                </Button>
-                <Group className='z-20 flex space-x-2'>
-                    {SWATCHES.map((swatchColor) => (
-                        <ColorSwatch 
-                            key={swatchColor} 
-                            color={swatchColor} 
-                            onClick={() => setColor(swatchColor)} 
-                        />
-                    ))}
-                </Group>
-                <div className='z-20 text-white'>
-                    <input 
-                        type="range" 
-                        min="1" 
-                        max="15" 
-                        value={size} 
-                        onChange={(e) => setSize(Number(e.target.value))} 
-                        className='bg-gray-700'
-                    />
-                    <span>{size}</span>
-                </div>
-                <Button
-                    onClick={() => setIsEraser(!isEraser)} // Toggle eraser
-                    className='z-20 bg-blue-600 text-white hover:bg-blue-700 transition duration-200'
-                    variant='default'
-                >
-                    {isEraser ? 'Brush' : 'Eraser'}
-                </Button>
-                <Button
-                    onClick={sendData}
-                    className='z-20 bg-green-600 text-white hover:bg-green-700 transition duration-200'
-                    variant='default'
-                    color='white'
-                >
-                    Calculate
-                </Button>
-            </div>
+        <div className="w-full h-screen bg-gray-100 relative overflow-hidden">
+            {/* Color Picker Panel */}
+            <ColorPicker
+                selectedColor={color}
+                onColorChange={setColor}
+                brushSize={size}
+                onBrushSizeChange={setSize}
+                isEraser={isEraser}
+                onToggleEraser={() => setIsEraser(!isEraser)}
+            />
+
+            {/* Toolbar */}
+            <Toolbar
+                onReset={() => setReset(true)}
+                onCalculate={sendData}
+            />
+
+            {/* Canvas */}
             <canvas
                 ref={canvasRef}
-                id='canvas'
-                className='absolute top-0 left-0 w-full h-full bg-black'
+                className="absolute top-0 left-0 w-full h-full cursor-crosshair"
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
                 onMouseOut={stopDrawing}
+                style={{ backgroundColor: '#f5f5f5' }}
             />
 
+            {/* LaTeX Results */}
             {latexExpression && latexExpression.map((latex, index) => (
                 <Draggable
                     key={index}
                     defaultPosition={latexPosition}
                     onStop={(e, data) => setLatexPosition({ x: data.x, y: data.y })}
                 >
-                    <div className="absolute p-3 text-white">
-                        <div className="latex-content">{latex}</div>
+                    <div className="absolute p-3 bg-white rounded-lg shadow-lg border">
+                        <div className="latex-content text-black">{latex}</div>
                     </div>
                 </Draggable>
             ))}
-        </>
+        </div>
     );
 }
