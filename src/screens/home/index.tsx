@@ -124,7 +124,7 @@ export default function Home() {
         if (canvas) {
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                ctx.strokeStyle = isEraser ? '#f5f5f5' : color;
+                ctx.strokeStyle = isEraser ? '#e5e7eb' : color;
                 ctx.lineWidth = size;
                 ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
                 ctx.stroke();
@@ -191,7 +191,7 @@ export default function Home() {
     };
 
     return (
-        <div className="w-full h-screen bg-gray-100 relative overflow-hidden">
+        <div className="w-full h-screen relative overflow-hidden" style={{ backgroundColor: '#e5e7eb' }}>
             {/* Color Picker Panel */}
             <ColorPicker
                 selectedColor={color}
@@ -216,7 +216,7 @@ export default function Home() {
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
                 onMouseOut={stopDrawing}
-                style={{ backgroundColor: '#f5f5f5' }}
+                style={{ backgroundColor: '#e5e7eb' }}
             />
 
             {/* LaTeX Results */}
