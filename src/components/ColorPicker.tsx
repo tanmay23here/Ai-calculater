@@ -219,10 +219,22 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
 
           {/* Hue and brightness sliders */}
           <div className="mb-4 space-y-3">
-            {/* Hue slider */}
+            {/* Hue slider with proper rainbow gradient */}
             <div className="relative">
               <label className="block text-xs text-gray-600 mb-1">Hue</label>
-              <div className="relative h-6 bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-cyan-500 via-blue-500 via-purple-500 to-red-500 rounded-lg shadow-inner">
+              <div 
+                className="relative h-6 rounded-lg shadow-inner border border-gray-200"
+                style={{
+                  background: `linear-gradient(to right, 
+                    hsl(0, 100%, 50%) 0%,
+                    hsl(60, 100%, 50%) 16.66%,
+                    hsl(120, 100%, 50%) 33.33%,
+                    hsl(180, 100%, 50%) 50%,
+                    hsl(240, 100%, 50%) 66.66%,
+                    hsl(300, 100%, 50%) 83.33%,
+                    hsl(360, 100%, 50%) 100%)`
+                }}
+              >
                 <input
                   type="range"
                   min="0"
@@ -245,7 +257,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
             <div className="relative">
               <label className="block text-xs text-gray-600 mb-1">Brightness</label>
               <div 
-                className="relative h-6 rounded-lg shadow-inner"
+                className="relative h-6 rounded-lg shadow-inner border border-gray-200"
                 style={{
                   background: `linear-gradient(to right, 
                     hsl(${hue}, ${saturation}%, 0%) 0%, 
