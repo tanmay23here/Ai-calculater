@@ -21,6 +21,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   const [saturation, setSaturation] = useState(100);
   const [lightness, setLightness] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const gradientRef = useRef<HTMLDivElement>(null);
 
   const colors = [
@@ -40,6 +41,40 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     };
     return `#${f(0)}${f(8)}${f(4)}`;
   };
+
+  // Convert hex to HSL
+  const hexToHsl = (hex: string) => {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+
+    return [h * 360, s * 100, l * 100];
+  };
+
+  // Update HSL when selectedColor changes
+  useEffect(() => {
+    if (selectedColor) {
+      const [h, s, l] = hexToHsl(selectedColor);
+      setHue(h);
+      setSaturation(s);
+      setLightness(l);
+    }
+  }, [selectedColor]);
 
   // Handle gradient area click/drag
   const handleGradientInteraction = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -94,12 +129,18 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     <>
       {/* Left side icons */}
       <div className="fixed left-4 top-32 flex flex-col gap-4 z-20">
-        {/* Color wheel icon */}
-        <div className="w-12 h-12 rounded-full bg-gradient-conic border-2 border-white shadow-lg flex items-center justify-center cursor-pointer hover:scale-105 transition-transform">
-          <div className="w-6 h-6 bg-white rounded-full"></div>
-        </div>
+        {/* Color wheel icon - clickable */}
+        <button
+          onClick={() => setShowColorPicker(!showColorPicker)}
+          className="w-12 h-12 rounded-full bg-gradient-conic border-2 border-white shadow-lg flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+        >
+          <div 
+            className="w-6 h-6 rounded-full border-2 border-white"
+            style={{ backgroundColor: selectedColor }}
+          ></div>
+        </button>
         
-        {/* Brush/Eraser toggle - Top */}
+        {/* Brush/Eraser toggle */}
         <button
           onClick={onToggleEraser}
           className={`w-12 h-12 rounded-lg shadow-lg flex items-center justify-center transition-all hover:scale-105 ${
@@ -135,118 +176,153 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         </div>
       </div>
 
-      {/* Color picker panel */}
-      <div className="fixed left-20 top-32 bg-white rounded-lg shadow-lg p-4 z-20" style={{ width: '200px' }}>
-        {/* Large gradient area */}
-        <div className="mb-3">
-          <div 
-            ref={gradientRef}
-            className="w-full h-32 rounded border border-gray-200 relative cursor-crosshair"
-            style={{
-              background: `linear-gradient(to bottom, 
-                hsl(${hue}, 100%, 50%) 0%, 
-                hsl(${hue}, 100%, 50%) 0%, 
-                transparent 100%), 
-                linear-gradient(to right, 
-                white 0%, 
-                hsl(${hue}, 100%, 50%) 100%),
-                linear-gradient(to bottom, 
-                transparent 0%, 
-                black 100%)`
-            }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          >
-            <div 
-              className="absolute w-3 h-3 bg-white rounded-full border-2 border-gray-400 pointer-events-none"
-              style={{
-                left: `${saturation}%`,
-                top: `${100 - lightness}%`,
-                transform: 'translate(-50%, -50%)'
-              }}
-            ></div>
-          </div>
-        </div>
-
-        {/* Horizontal gradient bars */}
-        <div className="mb-3 space-y-1">
-          {/* Hue slider */}
-          <div className="relative">
-            <div className="w-full h-4 bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-cyan-500 via-blue-500 to-purple-500 rounded"></div>
-            <input
-              type="range"
-              min="0"
-              max="360"
-              value={hue}
-              onChange={handleHueChange}
-              className="absolute top-0 left-0 w-full h-4 opacity-0 cursor-pointer"
-            />
-          </div>
-          
-          {/* Brightness slider */}
-          <div className="relative">
-            <div 
-              className="w-full h-4 rounded"
-              style={{
-                background: `linear-gradient(to right, 
-                  hsl(${hue}, ${saturation}%, 0%) 0%, 
-                  hsl(${hue}, ${saturation}%, 50%) 50%, 
-                  hsl(${hue}, ${saturation}%, 100%) 100%)`
-              }}
-            ></div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={lightness}
-              onChange={handleBrightnessChange}
-              className="absolute top-0 left-0 w-full h-4 opacity-0 cursor-pointer"
-            />
-          </div>
-        </div>
-
-        {/* Color swatches grid */}
-        <div className="grid grid-cols-6 gap-1 mb-4">
-          {colors.map((color, index) => (
+      {/* Color picker panel - only show when showColorPicker is true */}
+      {showColorPicker && (
+        <div className="fixed left-20 top-32 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-30" style={{ width: '280px' }}>
+          {/* Close button */}
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">Color Picker</h3>
             <button
-              key={index}
-              className={`w-6 h-6 rounded border transition-all hover:scale-110 ${
-                selectedColor === color ? 'border-2 border-gray-800 ring-2 ring-blue-300' : 'border border-gray-300'
-              }`}
-              style={{ backgroundColor: color }}
-              onClick={() => onColorChange(color)}
-            />
-          ))}
-        </div>
+              onClick={() => setShowColorPicker(false)}
+              className="w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 text-sm"
+            >
+              ×
+            </button>
+          </div>
 
-        {/* Brush size slider */}
-        <div className="mb-3">
-          <label className="block text-xs text-gray-600 mb-1">
-            Brush Size: {brushSize}px
-          </label>
-          <input
-            type="range"
-            min="1"
-            max="50"
-            value={brushSize}
-            onChange={(e) => onBrushSizeChange(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          />
-        </div>
+          {/* Large gradient area */}
+          <div className="mb-4">
+            <div 
+              ref={gradientRef}
+              className="w-full h-40 rounded-lg border border-gray-300 relative cursor-crosshair shadow-inner"
+              style={{
+                background: `
+                  linear-gradient(to top, #000 0%, transparent 100%),
+                  linear-gradient(to right, #fff 0%, hsl(${hue}, 100%, 50%) 100%)
+                `
+              }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            >
+              <div 
+                className="absolute w-4 h-4 bg-white rounded-full border-2 border-gray-800 shadow-lg pointer-events-none"
+                style={{
+                  left: `${saturation}%`,
+                  top: `${100 - lightness}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              ></div>
+            </div>
+          </div>
 
-        {/* Current color display */}
-        <div className="flex items-center gap-2">
-          <div 
-            className="w-8 h-8 rounded border-2 border-gray-300"
-            style={{ backgroundColor: selectedColor }}
-          ></div>
-          <div className="text-xs text-gray-600 font-mono">
-            {selectedColor.toUpperCase()}
+          {/* Hue and brightness sliders */}
+          <div className="mb-4 space-y-3">
+            {/* Hue slider */}
+            <div className="relative">
+              <label className="block text-xs text-gray-600 mb-1">Hue</label>
+              <div className="relative h-6 bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-cyan-500 via-blue-500 via-purple-500 to-red-500 rounded-lg shadow-inner">
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  value={hue}
+                  onChange={handleHueChange}
+                  className="absolute top-0 left-0 w-full h-6 opacity-0 cursor-pointer"
+                />
+                <div 
+                  className="absolute top-1/2 w-4 h-4 bg-white rounded-full border-2 border-gray-800 shadow-lg pointer-events-none"
+                  style={{
+                    left: `${(hue / 360) * 100}%`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                ></div>
+              </div>
+            </div>
+            
+            {/* Brightness slider */}
+            <div className="relative">
+              <label className="block text-xs text-gray-600 mb-1">Brightness</label>
+              <div 
+                className="relative h-6 rounded-lg shadow-inner"
+                style={{
+                  background: `linear-gradient(to right, 
+                    hsl(${hue}, ${saturation}%, 0%) 0%, 
+                    hsl(${hue}, ${saturation}%, 50%) 50%, 
+                    hsl(${hue}, ${saturation}%, 100%) 100%)`
+                }}
+              >
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={lightness}
+                  onChange={handleBrightnessChange}
+                  className="absolute top-0 left-0 w-full h-6 opacity-0 cursor-pointer"
+                />
+                <div 
+                  className="absolute top-1/2 w-4 h-4 bg-white rounded-full border-2 border-gray-800 shadow-lg pointer-events-none"
+                  style={{
+                    left: `${lightness}%`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Color swatches grid */}
+          <div className="mb-4">
+            <label className="block text-xs text-gray-600 mb-2">Quick Colors</label>
+            <div className="grid grid-cols-8 gap-2">
+              {colors.map((color, index) => (
+                <button
+                  key={index}
+                  className={`w-8 h-8 rounded-lg border-2 transition-all hover:scale-110 shadow-sm ${
+                    selectedColor === color ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  style={{ backgroundColor: color }}
+                  onClick={() => onColorChange(color)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Brush size slider */}
+          <div className="mb-4">
+            <label className="block text-xs text-gray-600 mb-2">
+              Brush Size: {brushSize}px
+            </label>
+            <div className="relative">
+              <input
+                type="range"
+                min="1"
+                max="50"
+                value={brushSize}
+                onChange={(e) => onBrushSizeChange(Number(e.target.value))}
+                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+              />
+            </div>
+          </div>
+
+          {/* Current color display */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-10 h-10 rounded-lg border-2 border-gray-300 shadow-sm"
+                style={{ backgroundColor: selectedColor }}
+              ></div>
+              <div>
+                <div className="text-xs text-gray-500">Current Color</div>
+                <div className="text-sm font-mono text-gray-800">
+                  {selectedColor.toUpperCase()}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 };
