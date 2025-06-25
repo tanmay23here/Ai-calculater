@@ -253,16 +253,16 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               </div>
             </div>
             
-            {/* Brightness slider */}
+            {/* Brightness slider - Fixed gradient */}
             <div className="relative">
               <label className="block text-xs text-gray-600 mb-1">Brightness</label>
               <div 
                 className="relative h-6 rounded-lg shadow-inner border border-gray-200"
                 style={{
                   background: `linear-gradient(to right, 
-                    hsl(${hue}, ${saturation}%, 0%) 0%, 
+                    #000000 0%, 
                     hsl(${hue}, ${saturation}%, 50%) 50%, 
-                    hsl(${hue}, ${saturation}%, 100%) 100%)`
+                    #ffffff 100%)`
                 }}
               >
                 <input
